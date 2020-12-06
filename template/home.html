@@ -42,9 +42,12 @@
                     v-for="msg in msglist"
                     v-bind:class="{ system: msg.type>0, myself: msg.user.nickname==curUser.nickname }"
                     >
-                    <div class="meta" v-if="msg.type==0"><span class="author">${ msg.user.nickname }</span> at ${ formatDate(msg.msg_time) } ${ calc(msg) }</div>
-                    <div>
+                    <div class="meta" v-if="msg.type==0 || msg.type==5"><span class="author">${ msg.user.nickname }</span> at ${ formatDate(msg.msg_time) } ${ calc(msg) }</div>
+                    <div v-if="msg.type != 5">
                         <span class="content" style="white-space: pre-wrap;">${ msg.content }</span>
+                    </div>
+                    <div v-if="msg.type == 5">
+                        <img :src="showImage(msg)">
                     </div>
                 </div>
             </div>
@@ -71,6 +74,8 @@
                     <input type="submit" class="form-control btn-primary text-center" v-on:click="leavechat" v-if="joined" value="离开聊天室">
                     <input type="submit" class="form-control btn-primary text-center" v-on:click="joinchat" v-else="joined" value="进入聊天室">
                 </div>
+                <!-- send image -->
+                <input type="file" accept="image/*" @change="uploadImage($event)" id="file-input">
                 <textarea id="chat-content" rows="3" class="form-control" v-model="content"
                           @keydown.enter.prevent.exact="sendChatContent"
                           @keydown.meta.enter="lineFeed"
@@ -83,6 +88,7 @@
 </div>
 
 </body>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
 <script type="text/javascript">
     let gWS;
@@ -219,6 +225,48 @@
 
                 this.addMsg2List(data);
                 this.content = "";
+            },
+            uploadImage: function(event) {
+                let data = new FormData();
+                data.append('image', event.target.files[0]); 
+                let config;
+                if ( event.target.files[0]['type'] ==='image/jpeg') {
+                    config = {
+                        header : {
+                            'Content-Type' : 'image/jpg'
+                        }
+                    }
+                } else if(event.target.files[0]['type'] ==='image/png') {
+                    config = {
+                        header : {
+                            'Content-Type' : 'image/png'
+                        }
+                    }
+                }
+                axios.put(
+                        "http://" + location.host + "/image", 
+                        data,
+                        config
+                    ).then(
+                        response => {
+                            console.log('image upload response > ', response)
+                            let msg_data = {
+                                user: {
+                                    nickname: this.curUser.nickname,
+                                    uid: this.curUser.uid,
+                                },
+                                type: 5,
+                                content: response.data,
+                                msg_time: new Date().getTime(),
+                            };
+                            let msg = JSON.stringify({"content": "", "image_path": response.data});
+                            gWS.send(msg);
+                            this.addMsg2List(msg_data);
+                        }
+                    )
+            },
+            showImage: function(msg) {
+                return "http://" + location.host + "/image/" + msg.content
             },
             fetchUserList: function() {
                 let that = this;

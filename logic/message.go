@@ -12,6 +12,7 @@ const (
 	MsgTypeUserEnter        // 用户进入
 	MsgTypeUserLeave        // 用户退出
 	MsgTypeError            // 错误消息
+	MsgTypeImage
 )
 
 // 给用户发送的消息
@@ -35,6 +36,19 @@ func NewMessage(user *User, content, clientTime string) *Message {
 	message := &Message{
 		User:    user,
 		Type:    MsgTypeNormal,
+		Content: content,
+		MsgTime: time.Now(),
+	}
+	if clientTime != "" {
+		message.ClientSendTime = time.Unix(0, cast.ToInt64(clientTime))
+	}
+	return message
+}
+
+func NewImageMessage(user *User, content, clientTime string) *Message {
+	message := &Message{
+		User:    user,
+		Type:    MsgTypeImage,
 		Content: content,
 		MsgTime: time.Now(),
 	}

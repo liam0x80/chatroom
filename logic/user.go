@@ -95,8 +95,13 @@ func (u *User) ReceiveMessage(ctx context.Context) error {
 		}
 
 		// 内容发送到聊天室
-		sendMsg := NewMessage(u, receiveMsg["content"], receiveMsg["send_time"])
-		sendMsg.Content = FilterSensitive(sendMsg.Content)
+		var sendMsg *Message
+		if path, ok := receiveMsg["image_path"]; ok {
+			sendMsg = NewImageMessage(u, path, receiveMsg["send_time"])
+		} else {
+			sendMsg = NewMessage(u, receiveMsg["content"], receiveMsg["send_time"])
+			sendMsg.Content = FilterSensitive(sendMsg.Content)
+		}
 
 		// 解析 content，看看 @ 谁了
 		reg := regexp.MustCompile(`@[^\s@]{2,20}`)
